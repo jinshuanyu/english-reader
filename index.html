@@ -548,8 +548,9 @@
         <span id="playAllIcon">▶</span> 整篇播放
       </button>
       <div class="speed-group">
-        <button class="speed-btn active" id="speedNormal" onclick="setSpeed('normal')">Normal</button>
-        <button class="speed-btn" id="speedSlow" onclick="setSpeed('slow')">Slow</button>
+        <button class="speed-btn active" id="speedNormal" onclick="setSpeed('normal')" title="1x">🐇</button>
+        <button class="speed-btn" id="speedSlow" onclick="setSpeed('slow')" title="0.75x">🐢</button>
+        <button class="speed-btn" id="speedSlower" onclick="setSpeed('slower')" title="0.6x">🐌</button>
       </div>
     </div>
 
@@ -599,54 +600,61 @@ if (!('speechSynthesis' in window)) {
   document.getElementById('noTts').style.display = 'block';
 }
 
-// Load voices & populate dropdown
+const voiceSlots = [
+  { label: '美式女聲 (US)', lang: 'en-US', gender: 'female', hints: ['female', 'zira', 'samantha', 'ava', 'susan', 'linda', 'catherine'] },
+  { label: '美式男聲 (US)', lang: 'en-US', gender: 'male',   hints: ['male', 'david', 'mark', 'james', 'alex', 'fred'] },
+  { label: '英式女聲 (UK)', lang: 'en-GB', gender: 'female', hints: ['female', 'hazel', 'susan', 'fiona', 'kate'] },
+  { label: '英式男聲 (UK)', lang: 'en-GB', gender: 'male',   hints: ['male', 'george', 'daniel', 'james', 'richard', 'ryan'] },
+];
+
 function loadVoices() {
   const voices = speechSynthesis.getVoices();
   if (voices.length === 0) return;
   voicesReady = true;
 
   const select = document.getElementById('voiceSelect');
-  const enVoices = voices.filter(v => v.lang.startsWith('en'));
-  if (enVoices.length === 0) return;
-
   select.innerHTML = '';
-  const priorityNames = ['Google US English Female', 'Google US English', 'Microsoft Zira', 'Samantha'];
-  let bestIndex = 0;
+  const matched = [];
 
-  const femaleHints = ['female', 'woman', 'zira', 'samantha', 'karen', 'moira', 'tessa', 'fiona', 'veena', 'susan', 'hazel', 'heera', 'linda', 'catherine', 'ava'];
-  const maleHints = ['male', 'man', 'david', 'mark', 'james', 'daniel', 'george', 'richard', 'alex', 'tom', 'fred', 'ralph', 'rishi', 'aaron'];
-
-  function getGenderLabel(name) {
-    const lower = name.toLowerCase();
-    if (femaleHints.some(h => lower.includes(h))) return '👩 ';
-    if (maleHints.some(h => lower.includes(h))) return '👨 ';
-    return '';
+  for (const slot of voiceSlots) {
+    let found = null;
+    for (const hint of slot.hints) {
+      found = voices.find(v => v.lang.startsWith(slot.lang.substring(0, 5)) && v.name.toLowerCase().includes(hint));
+      if (found) break;
+    }
+    if (!found) {
+      found = voices.find(v => v.lang.startsWith(slot.lang.substring(0, 5)));
+    }
+    if (found) {
+      matched.push({ voice: found, label: slot.label });
+      const opt = document.createElement('option');
+      opt.value = matched.length - 1;
+      opt.textContent = slot.label;
+      select.appendChild(opt);
+    }
   }
 
-  enVoices.forEach((v, i) => {
-    const opt = document.createElement('option');
-    opt.value = i;
-    const shortName = v.name.replace('Microsoft ', '').replace('Google ', '');
-    const gender = getGenderLabel(v.name);
-    opt.textContent = `${gender}${shortName} (${v.lang})`;
-    select.appendChild(opt);
-
-    if (!selectedVoice) {
-      for (const pn of priorityNames) {
-        if (v.name.includes(pn)) {
-          bestIndex = i;
-          selectedVoice = v;
-        }
-      }
+  if (matched.length === 0) {
+    const enVoice = voices.find(v => v.lang.startsWith('en'));
+    if (enVoice) {
+      matched.push({ voice: enVoice, label: enVoice.name });
+      const opt = document.createElement('option');
+      opt.value = 0;
+      opt.textContent = enVoice.name;
+      select.appendChild(opt);
     }
-  });
+  }
 
-  select.value = bestIndex;
-  if (!selectedVoice) selectedVoice = enVoices[0];
+  if (matched.length > 0) {
+    selectedVoice = matched[0].voice;
+    select.value = 0;
+  }
 
   select.onchange = () => {
-    selectedVoice = enVoices[parseInt(select.value)];
+    selectedVoice = matched[parseInt(select.value)].voice;
   };
+
+  window._voiceMatched = matched;
 }
 speechSynthesis.onvoiceschanged = loadVoices;
 loadVoices();
@@ -735,7 +743,9 @@ function renderSentences() {
 }
 
 function getRate() {
-  return speed === 'slow' ? 0.75 : 1;
+  if (speed === 'slower') return 0.6;
+  if (speed === 'slow') return 0.75;
+  return 1;
 }
 
 function clearHighlights() {
@@ -851,6 +861,7 @@ function setSpeed(s) {
   speed = s;
   document.getElementById('speedNormal').classList.toggle('active', s === 'normal');
   document.getElementById('speedSlow').classList.toggle('active', s === 'slow');
+  document.getElementById('speedSlower').classList.toggle('active', s === 'slower');
 }
 
 function backToEdit() {
