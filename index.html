@@ -600,12 +600,24 @@ if (!('speechSynthesis' in window)) {
   document.getElementById('noTts').style.display = 'block';
 }
 
-const voiceSlots = [
-  { label: '美式女聲 (US)', lang: 'en-US', gender: 'female', hints: ['female', 'zira', 'samantha', 'ava', 'susan', 'linda', 'catherine'] },
-  { label: '美式男聲 (US)', lang: 'en-US', gender: 'male',   hints: ['male', 'david', 'mark', 'james', 'alex', 'fred'] },
-  { label: '英式女聲 (UK)', lang: 'en-GB', gender: 'female', hints: ['female', 'hazel', 'susan', 'fiona', 'kate'] },
-  { label: '英式男聲 (UK)', lang: 'en-GB', gender: 'male',   hints: ['male', 'george', 'daniel', 'james', 'richard', 'ryan'] },
-];
+const accentMap = {
+  'en-US': '美式', 'en-GB': '英式', 'en-AU': '澳式', 'en-IN': '印度',
+  'en-IE': '愛爾蘭', 'en-ZA': '南非', 'en-NZ': '紐西蘭', 'en-CA': '加拿大',
+  'en-SG': '新加坡', 'en-PH': '菲律賓', 'en-HK': '香港',
+};
+const femaleNames = ['female', 'woman', 'zira', 'samantha', 'karen', 'moira', 'tessa', 'fiona', 'veena', 'susan', 'hazel', 'heera', 'linda', 'catherine', 'ava', 'allison', 'kate', 'serena', 'victoria', 'shelley', 'sandy', 'rishi', 'nicky', 'joana'];
+const maleNames = ['male', 'man', 'david', 'mark', 'james', 'daniel', 'george', 'richard', 'alex', 'tom', 'fred', 'ralph', 'aaron', 'oliver', 'thomas', 'gordon', 'lee', 'liam', 'evan', 'nathan'];
+
+function getVoiceLabel(v) {
+  const lang = v.lang.replace('_', '-');
+  const accent = accentMap[lang] || accentMap[lang.substring(0, 5)] || lang;
+  const lower = v.name.toLowerCase();
+  let gender = '';
+  if (femaleNames.some(n => lower.includes(n))) gender = '女聲';
+  else if (maleNames.some(n => lower.includes(n))) gender = '男聲';
+  const shortName = v.name.replace(/Microsoft\s*/i, '').replace(/Google\s*/i, '').replace(/\s*Online\s*\(Natural\)/i, '').split(' - ')[0].split('(')[0].trim();
+  return `${accent}${gender ? ' ' + gender : ''} - ${shortName}`;
+}
 
 function loadVoices() {
   const voices = speechSynthesis.getVoices();
@@ -614,47 +626,45 @@ function loadVoices() {
 
   const select = document.getElementById('voiceSelect');
   select.innerHTML = '';
-  const matched = [];
 
-  for (const slot of voiceSlots) {
-    let found = null;
-    for (const hint of slot.hints) {
-      found = voices.find(v => v.lang.startsWith(slot.lang.substring(0, 5)) && v.name.toLowerCase().includes(hint));
-      if (found) break;
-    }
-    if (!found) {
-      found = voices.find(v => v.lang.startsWith(slot.lang.substring(0, 5)));
-    }
-    if (found) {
-      matched.push({ voice: found, label: slot.label });
-      const opt = document.createElement('option');
-      opt.value = matched.length - 1;
-      opt.textContent = slot.label;
-      select.appendChild(opt);
-    }
+  const enVoices = voices.filter(v => v.lang.startsWith('en'));
+  if (enVoices.length === 0) return;
+
+  const seen = new Set();
+  const unique = [];
+  for (const v of enVoices) {
+    const key = v.name + '|' + v.lang;
+    if (!seen.has(key)) { seen.add(key); unique.push(v); }
   }
 
-  if (matched.length === 0) {
-    const enVoice = voices.find(v => v.lang.startsWith('en'));
-    if (enVoice) {
-      matched.push({ voice: enVoice, label: enVoice.name });
-      const opt = document.createElement('option');
-      opt.value = 0;
-      opt.textContent = enVoice.name;
-      select.appendChild(opt);
-    }
-  }
+  const order = ['en-US', 'en-GB', 'en-AU'];
+  unique.sort((a, b) => {
+    const ai = order.indexOf(a.lang); const bi = order.indexOf(b.lang);
+    const ao = ai >= 0 ? ai : 99; const bo = bi >= 0 ? bi : 99;
+    return ao - bo || a.name.localeCompare(b.name);
+  });
 
-  if (matched.length > 0) {
-    selectedVoice = matched[0].voice;
-    select.value = 0;
-  }
+  let bestIdx = 0;
+  unique.forEach((v, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = getVoiceLabel(v);
+    select.appendChild(opt);
+    if (i === 0) bestIdx = 0;
+    const lower = v.name.toLowerCase();
+    if (!selectedVoice && v.lang.startsWith('en-US') && femaleNames.some(n => lower.includes(n))) {
+      bestIdx = i;
+    }
+  });
+
+  select.value = bestIdx;
+  selectedVoice = unique[bestIdx];
 
   select.onchange = () => {
-    selectedVoice = matched[parseInt(select.value)].voice;
+    selectedVoice = unique[parseInt(select.value)];
   };
 
-  window._voiceMatched = matched;
+  window._voiceList = unique;
 }
 speechSynthesis.onvoiceschanged = loadVoices;
 loadVoices();
