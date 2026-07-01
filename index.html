@@ -669,6 +669,15 @@ function loadVoices() {
 speechSynthesis.onvoiceschanged = loadVoices;
 loadVoices();
 
+let voiceRetries = 0;
+function retryLoadVoices() {
+  if (voicesReady || voiceRetries > 20) return;
+  voiceRetries++;
+  loadVoices();
+  if (!voicesReady) setTimeout(retryLoadVoices, 250);
+}
+retryLoadVoices();
+
 function getSelectedVoice() {
   if (selectedVoice) return selectedVoice;
   loadVoices();
