@@ -671,12 +671,40 @@ loadVoices();
 
 let voiceRetries = 0;
 function retryLoadVoices() {
-  if (voicesReady || voiceRetries > 20) return;
+  if (voicesReady || voiceRetries > 30) {
+    if (!voicesReady) showDefaultVoice();
+    return;
+  }
   voiceRetries++;
   loadVoices();
-  if (!voicesReady) setTimeout(retryLoadVoices, 250);
+  if (!voicesReady) setTimeout(retryLoadVoices, 300);
 }
 retryLoadVoices();
+
+function showDefaultVoice() {
+  const select = document.getElementById('voiceSelect');
+  if (select.options.length <= 1 && select.options[0] && select.options[0].value === '') {
+    select.innerHTML = '';
+    const opt = document.createElement('option');
+    opt.value = 'default';
+    opt.textContent = '預設語音';
+    select.appendChild(opt);
+  }
+}
+
+document.addEventListener('touchstart', function onTouch() {
+  if (!voicesReady) { voiceRetries = 0; retryLoadVoices(); }
+  document.removeEventListener('touchstart', onTouch);
+}, { once: true });
+
+document.addEventListener('click', function onClick() {
+  if (!voicesReady) { voiceRetries = 0; retryLoadVoices(); }
+  document.removeEventListener('click', onClick);
+}, { once: true });
+
+window.addEventListener('load', () => {
+  if (!voicesReady) { voiceRetries = 0; retryLoadVoices(); }
+});
 
 function getSelectedVoice() {
   if (selectedVoice) return selectedVoice;
