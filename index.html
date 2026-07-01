@@ -718,30 +718,30 @@ function setSplitMode(mode) {
   document.getElementById('splitAuto').classList.toggle('active', mode === 'auto');
 }
 
-const ABBREVS = [‘Mr’, ‘Mrs’, ‘Ms’, ‘Dr’, ‘Prof’, ‘Sr’, ‘Jr’, ‘St’, ‘Ave’, ‘Blvd’, ‘Dept’, ‘Est’, ‘Fig’, ‘Gen’, ‘Gov’, ‘Lt’, ‘Mt’, ‘No’, ‘Rev’, ‘Sgt’, ‘Vol’, ‘vs’, ‘etc’, ‘e.g’, ‘i.e’, ‘a.m’, ‘p.m’];
-const ABBREV_RE = new RegExp(‘\\b(‘ + ABBREVS.join(‘|’) + ‘)\\.’, ‘gi’);
-const PLACEHOLDER = ‘\x00’;
+const ABBREVS = ['Mr', 'Mrs', 'Ms', 'Dr', 'Prof', 'Sr', 'Jr', 'St', 'Ave', 'Blvd', 'Dept', 'Est', 'Fig', 'Gen', 'Gov', 'Lt', 'Mt', 'No', 'Rev', 'Sgt', 'Vol', 'vs', 'etc', 'e.g', 'i.e', 'a.m', 'p.m'];
+const ABBREV_RE = new RegExp('\\b(' + ABBREVS.join('|') + ')\\.', 'gi');
+const PLACEHOLDER = '@@ABBR@@';
 
 function splitBySentence(text) {
-  const safe = text.replace(ABBREV_RE, ‘$1’ + PLACEHOLDER);
+  const safe = text.replace(ABBREV_RE, '$1' + PLACEHOLDER);
   const result = [];
-  const regex = /[^.!?]*[.!?]+[“’”’)}\]]?\s*/g;
+  const regex = /[^.!?]*[.!?]+["'"')}\]]?\s*/g;
   let match;
   while ((match = regex.exec(safe)) !== null) {
-    const s = match[0].trim().replaceAll(PLACEHOLDER, ‘.’);
+    const s = match[0].trim().replaceAll(PLACEHOLDER, '.');
     if (s.length > 0) result.push(s);
   }
-  const covered = result.join(‘’).length;
+  const covered = result.join('').length;
   const remainder = text.slice(covered).trim();
   if (remainder.length > 0) result.push(remainder);
   return result.filter(s => s.length > 0);
 }
 
 const TTS_EXPAND = [
-  [/\bMr\./gi, ‘Mister’], [/\bMrs\./gi, ‘Misses’], [/\bMs\./gi, ‘Miss’],
-  [/\bDr\./gi, ‘Doctor’], [/\bProf\./gi, ‘Professor’], [/\bSt\./gi, ‘Saint’],
-  [/\bJr\./gi, ‘Junior’], [/\bSr\./gi, ‘Senior’], [/\bvs\./gi, ‘versus’],
-  [/\betc\./gi, ‘etcetera’], [/\be\.g\./gi, ‘for example’], [/\bi\.e\./gi, ‘that is’],
+  [/\bMr\./gi, 'Mister'], [/\bMrs\./gi, 'Misses'], [/\bMs\./gi, 'Miss'],
+  [/\bDr\./gi, 'Doctor'], [/\bProf\./gi, 'Professor'], [/\bSt\./gi, 'Saint'],
+  [/\bJr\./gi, 'Junior'], [/\bSr\./gi, 'Senior'], [/\bvs\./gi, 'versus'],
+  [/\betc\./gi, 'etcetera'], [/\be\.g\./gi, 'for example'], [/\bi\.e\./gi, 'that is'],
 ];
 
 function expandForTTS(text) {
