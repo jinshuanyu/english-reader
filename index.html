@@ -608,15 +608,23 @@ const accentMap = {
 const femaleNames = ['female', 'woman', 'zira', 'samantha', 'karen', 'moira', 'tessa', 'fiona', 'veena', 'susan', 'hazel', 'heera', 'linda', 'catherine', 'ava', 'allison', 'kate', 'serena', 'victoria', 'shelley', 'sandy', 'rishi', 'nicky', 'joana'];
 const maleNames = ['male', 'man', 'david', 'mark', 'james', 'daniel', 'george', 'richard', 'alex', 'tom', 'fred', 'ralph', 'aaron', 'oliver', 'thomas', 'gordon', 'lee', 'liam', 'evan', 'nathan'];
 
+function detectGender(name) {
+  const lower = name.toLowerCase();
+  if (femaleNames.some(n => lower.includes(n))) return 'f';
+  if (maleNames.some(n => lower.includes(n))) return 'm';
+  return '';
+}
+
+function getAccent(lang) {
+  const l = lang.replace('_', '-');
+  return accentMap[l] || accentMap[l.substring(0, 5)] || l;
+}
+
 function getVoiceLabel(v) {
-  const lang = v.lang.replace('_', '-');
-  const accent = accentMap[lang] || accentMap[lang.substring(0, 5)] || lang;
-  const lower = v.name.toLowerCase();
-  let gender = '';
-  if (femaleNames.some(n => lower.includes(n))) gender = '女聲';
-  else if (maleNames.some(n => lower.includes(n))) gender = '男聲';
-  const shortName = v.name.replace(/Microsoft\s*/i, '').replace(/Google\s*/i, '').replace(/\s*Online\s*\(Natural\)/i, '').split(' - ')[0].split('(')[0].trim();
-  return `${accent}${gender ? ' ' + gender : ''} - ${shortName}`;
+  const accent = getAccent(v.lang);
+  const g = detectGender(v.name);
+  const gender = g === 'f' ? '女聲' : g === 'm' ? '男聲' : '';
+  return `${accent}${gender ? ' ' + gender : ''}`;
 }
 
 function loadVoices() {
@@ -630,41 +638,42 @@ function loadVoices() {
   const enVoices = voices.filter(v => v.lang.startsWith('en'));
   if (enVoices.length === 0) return;
 
-  const seen = new Set();
-  const unique = [];
-  for (const v of enVoices) {
-    const key = v.name + '|' + v.lang;
-    if (!seen.has(key)) { seen.add(key); unique.push(v); }
-  }
-
   const order = ['en-US', 'en-GB', 'en-AU'];
-  unique.sort((a, b) => {
+  enVoices.sort((a, b) => {
     const ai = order.indexOf(a.lang); const bi = order.indexOf(b.lang);
     const ao = ai >= 0 ? ai : 99; const bo = bi >= 0 ? bi : 99;
     return ao - bo || a.name.localeCompare(b.name);
   });
 
+  const picked = [];
+  const usedKeys = new Set();
+  for (const v of enVoices) {
+    const accent = getAccent(v.lang);
+    const gender = detectGender(v.name);
+    const key = accent + '|' + gender;
+    if (!usedKeys.has(key)) {
+      usedKeys.add(key);
+      picked.push(v);
+    }
+  }
+
   let bestIdx = 0;
-  unique.forEach((v, i) => {
+  picked.forEach((v, i) => {
     const opt = document.createElement('option');
     opt.value = i;
     opt.textContent = getVoiceLabel(v);
     select.appendChild(opt);
-    if (i === 0) bestIdx = 0;
-    const lower = v.name.toLowerCase();
-    if (!selectedVoice && v.lang.startsWith('en-US') && femaleNames.some(n => lower.includes(n))) {
+    if (v.lang.startsWith('en-US') && detectGender(v.name) === 'f') {
       bestIdx = i;
     }
   });
 
   select.value = bestIdx;
-  selectedVoice = unique[bestIdx];
+  selectedVoice = picked[bestIdx];
 
   select.onchange = () => {
-    selectedVoice = unique[parseInt(select.value)];
+    selectedVoice = picked[parseInt(select.value)];
   };
-
-  window._voiceList = unique;
 }
 speechSynthesis.onvoiceschanged = loadVoices;
 loadVoices();
