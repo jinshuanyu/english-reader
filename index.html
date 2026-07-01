@@ -638,8 +638,12 @@ function loadVoices() {
   const enVoices = voices.filter(v => v.lang.startsWith('en'));
   if (enVoices.length === 0) return;
 
+  const isMS = v => /microsoft/i.test(v.name);
   const order = ['en-US', 'en-GB', 'en-AU'];
   enVoices.sort((a, b) => {
+    const msA = isMS(a) ? 0 : 1;
+    const msB = isMS(b) ? 0 : 1;
+    if (msA !== msB) return msA - msB;
     const ai = order.indexOf(a.lang); const bi = order.indexOf(b.lang);
     const ao = ai >= 0 ? ai : 99; const bo = bi >= 0 ? bi : 99;
     return ao - bo || a.name.localeCompare(b.name);
