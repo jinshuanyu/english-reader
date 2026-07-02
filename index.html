@@ -754,6 +754,8 @@ function speakLine(index) {
     row.classList.add('playing');
     row.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
+    speechSynthesis.cancel();
+
     const u = new SpeechSynthesisUtterance(expandForTTS(lines[index]));
     u.lang = 'en-US';
     u.rate = getRate();
@@ -761,9 +763,12 @@ function speakLine(index) {
     const voice = getSelectedVoice();
     if (voice) u.voice = voice;
 
-    u.onend = () => { row.classList.remove('playing'); resolve(); };
-    u.onerror = () => { row.classList.remove('playing'); resolve(); };
+    let done = false;
+    const finish = () => { if (done) return; done = true; row.classList.remove('playing'); resolve(); };
+    u.onend = finish;
+    u.onerror = finish;
 
+    startResumeTimer();
     speechSynthesis.speak(u);
   });
 }
