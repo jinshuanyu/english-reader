@@ -568,8 +568,10 @@ function pickVoice() {
   if (voices.length === 0) return;
   voicesReady = true;
   const en = voices.filter(v => v.lang.startsWith('en-US'));
+  const msF = en.find(v => /microsoft/i.test(v.name) && /zira|aria|jenny|ana|michelle|emma|sara/i.test(v.name));
   const ms = en.find(v => /microsoft/i.test(v.name));
-  selectedVoice = ms || en[0] || voices.find(v => v.lang.startsWith('en')) || null;
+  const anyF = en.find(v => /female|woman|zira|aria|jenny|ana|michelle|emma|sara|samantha|karen|fiona/i.test(v.name));
+  selectedVoice = msF || ms || anyF || en[0] || voices.find(v => v.lang.startsWith('en')) || null;
 }
 
 speechSynthesis.onvoiceschanged = pickVoice;
