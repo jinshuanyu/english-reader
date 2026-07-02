@@ -514,8 +514,8 @@
       </button>
       <div class="speed-group">
         <button class="speed-btn active" id="speedNormal" onclick="setSpeed('normal')" title="1x">🐇</button>
-        <button class="speed-btn" id="speedSlow" onclick="setSpeed('slow')" title="0.65x">🐢</button>
-        <button class="speed-btn" id="speedSlower" onclick="setSpeed('slower')" title="0.45x">🐌</button>
+        <button class="speed-btn" id="speedSlow" onclick="setSpeed('slow')" title="0.7x">🐢</button>
+        <button class="speed-btn" id="speedSlower" onclick="setSpeed('slower')" title="0.5x">🐌</button>
       </div>
     </div>
 
@@ -695,8 +695,8 @@ function renderSentences() {
 }
 
 function getRate() {
-  if (speed === 'slower') return 0.45;
-  if (speed === 'slow') return 0.65;
+  if (speed === 'slower') return 0.5;
+  if (speed === 'slow') return 0.7;
   return 1;
 }
 
