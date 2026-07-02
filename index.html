@@ -611,12 +611,13 @@ function splitBySentence(text) {
   const result = [];
   const regex = /[^.!?]*[.!?]+["'"')}\]]?\s*/g;
   let match;
+  let lastIndex = 0;
   while ((match = regex.exec(safe)) !== null) {
+    lastIndex = regex.lastIndex;
     const s = match[0].trim().replaceAll(PLACEHOLDER, '.');
     if (s.length > 0) result.push(s);
   }
-  const covered = result.join('').length;
-  const remainder = text.slice(covered).trim();
+  const remainder = safe.slice(lastIndex).trim().replaceAll(PLACEHOLDER, '.');
   if (remainder.length > 0) result.push(remainder);
   return result.filter(s => s.length > 0);
 }
