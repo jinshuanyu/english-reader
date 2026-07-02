@@ -385,37 +385,6 @@
 
   .stop-floating.visible { display: block; }
 
-  /* Voice select */
-  .voice-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 10px;
-    font-size: 0.82rem;
-    color: var(--text-light);
-  }
-
-  .voice-row span {
-    white-space: nowrap;
-  }
-
-  .voice-select {
-    flex: 1;
-    padding: 6px 10px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    font-family: 'Inter', 'Noto Sans TC', system-ui, sans-serif;
-    font-size: 0.82rem;
-    color: var(--text);
-    background: var(--card);
-    cursor: pointer;
-  }
-
-  .voice-select:focus {
-    outline: none;
-    border-color: var(--primary);
-  }
-
   /* Footer */
   .footer {
     margin-top: 3rem;
@@ -529,12 +498,6 @@
         <button class="split-opt" id="splitAuto" onclick="setSplitMode('auto')">自動分句</button>
       </div>
     </div>
-    <div class="voice-row">
-      <span>語音：</span>
-      <select class="voice-select" id="voiceSelect">
-        <option value="">載入中...</option>
-      </select>
-    </div>
     <div class="input-actions">
       <button class="btn btn-primary" onclick="startReading()">開始朗讀 →</button>
       <button class="btn btn-clear" onclick="clearInput()">清除</button>
@@ -600,128 +563,32 @@ if (!('speechSynthesis' in window)) {
   document.getElementById('noTts').style.display = 'block';
 }
 
-const accentMap = {
-  'en-US': '美式', 'en-GB': '英式', 'en-AU': '澳式', 'en-IN': '印度',
-  'en-IE': '愛爾蘭', 'en-ZA': '南非', 'en-NZ': '紐西蘭', 'en-CA': '加拿大',
-  'en-SG': '新加坡', 'en-PH': '菲律賓', 'en-HK': '香港',
-};
-const femaleNames = ['female', 'woman', 'zira', 'samantha', 'karen', 'moira', 'tessa', 'fiona', 'veena', 'susan', 'hazel', 'heera', 'linda', 'catherine', 'ava', 'allison', 'kate', 'serena', 'victoria', 'shelley', 'sandy', 'rishi', 'nicky', 'joana'];
-const maleNames = ['male', 'man', 'david', 'mark', 'james', 'daniel', 'george', 'richard', 'alex', 'tom', 'fred', 'ralph', 'aaron', 'oliver', 'thomas', 'gordon', 'lee', 'liam', 'evan', 'nathan'];
-
-function detectGender(name) {
-  const lower = name.toLowerCase();
-  if (femaleNames.some(n => lower.includes(n))) return 'f';
-  if (maleNames.some(n => lower.includes(n))) return 'm';
-  return '';
-}
-
-function getAccent(lang) {
-  const l = lang.replace('_', '-');
-  return accentMap[l] || accentMap[l.substring(0, 5)] || l;
-}
-
-function getVoiceLabel(v) {
-  const accent = getAccent(v.lang);
-  const g = detectGender(v.name);
-  const gender = g === 'f' ? '女聲' : g === 'm' ? '男聲' : '';
-  return `${accent}${gender ? ' ' + gender : ''}`;
-}
-
-function loadVoices() {
+function pickVoice() {
   const voices = speechSynthesis.getVoices();
   if (voices.length === 0) return;
   voicesReady = true;
-
-  const select = document.getElementById('voiceSelect');
-  select.innerHTML = '';
-
-  const enVoices = voices.filter(v => v.lang.startsWith('en'));
-  if (enVoices.length === 0) return;
-
-  const isMS = v => /microsoft/i.test(v.name);
-  const order = ['en-US', 'en-GB', 'en-AU'];
-  enVoices.sort((a, b) => {
-    const msA = isMS(a) ? 0 : 1;
-    const msB = isMS(b) ? 0 : 1;
-    if (msA !== msB) return msA - msB;
-    const ai = order.indexOf(a.lang); const bi = order.indexOf(b.lang);
-    const ao = ai >= 0 ? ai : 99; const bo = bi >= 0 ? bi : 99;
-    return ao - bo || a.name.localeCompare(b.name);
-  });
-
-  const picked = [];
-  const usedKeys = new Set();
-  for (const v of enVoices) {
-    const accent = getAccent(v.lang);
-    const gender = detectGender(v.name);
-    const key = accent + '|' + gender;
-    if (!usedKeys.has(key)) {
-      usedKeys.add(key);
-      picked.push(v);
-    }
-  }
-
-  let bestIdx = 0;
-  picked.forEach((v, i) => {
-    const opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = getVoiceLabel(v);
-    select.appendChild(opt);
-    if (v.lang.startsWith('en-US') && detectGender(v.name) === 'f') {
-      bestIdx = i;
-    }
-  });
-
-  select.value = bestIdx;
-  selectedVoice = picked[bestIdx];
-
-  select.onchange = () => {
-    selectedVoice = picked[parseInt(select.value)];
-  };
+  const en = voices.filter(v => v.lang.startsWith('en-US'));
+  const ms = en.find(v => /microsoft/i.test(v.name));
+  selectedVoice = ms || en[0] || voices.find(v => v.lang.startsWith('en')) || null;
 }
-speechSynthesis.onvoiceschanged = loadVoices;
-loadVoices();
+
+speechSynthesis.onvoiceschanged = pickVoice;
+pickVoice();
 
 let voiceRetries = 0;
-function retryLoadVoices() {
-  if (voicesReady || voiceRetries > 30) {
-    if (!voicesReady) showDefaultVoice();
-    return;
-  }
+(function retryPick() {
+  if (voicesReady || voiceRetries > 30) return;
   voiceRetries++;
-  loadVoices();
-  if (!voicesReady) setTimeout(retryLoadVoices, 300);
-}
-retryLoadVoices();
+  pickVoice();
+  if (!voicesReady) setTimeout(retryPick, 300);
+})();
 
-function showDefaultVoice() {
-  const select = document.getElementById('voiceSelect');
-  if (select.options.length <= 1 && select.options[0] && select.options[0].value === '') {
-    select.innerHTML = '';
-    const opt = document.createElement('option');
-    opt.value = 'default';
-    opt.textContent = '預設語音';
-    select.appendChild(opt);
-  }
-}
-
-document.addEventListener('touchstart', function onTouch() {
-  if (!voicesReady) { voiceRetries = 0; retryLoadVoices(); }
-  document.removeEventListener('touchstart', onTouch);
-}, { once: true });
-
-document.addEventListener('click', function onClick() {
-  if (!voicesReady) { voiceRetries = 0; retryLoadVoices(); }
-  document.removeEventListener('click', onClick);
-}, { once: true });
-
-window.addEventListener('load', () => {
-  if (!voicesReady) { voiceRetries = 0; retryLoadVoices(); }
-});
+document.addEventListener('touchstart', () => { if (!voicesReady) pickVoice(); }, { once: true });
+document.addEventListener('click', () => { if (!voicesReady) pickVoice(); }, { once: true });
 
 function getSelectedVoice() {
   if (selectedVoice) return selectedVoice;
-  loadVoices();
+  pickVoice();
   return selectedVoice;
 }
 
