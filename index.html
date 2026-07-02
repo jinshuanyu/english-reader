@@ -409,8 +409,10 @@
 
   .support-btn {
     display: inline-block;
-    margin: 12px 0;
+    margin: 12px auto;
     padding: 10px 22px;
+    max-width: 90%;
+    word-break: keep-all;
     background: var(--accent);
     color: #fff;
     border: none;
@@ -512,8 +514,8 @@
       </button>
       <div class="speed-group">
         <button class="speed-btn active" id="speedNormal" onclick="setSpeed('normal')" title="1x">🐇</button>
-        <button class="speed-btn" id="speedSlow" onclick="setSpeed('slow')" title="0.75x">🐢</button>
-        <button class="speed-btn" id="speedSlower" onclick="setSpeed('slower')" title="0.6x">🐌</button>
+        <button class="speed-btn" id="speedSlow" onclick="setSpeed('slow')" title="0.65x">🐢</button>
+        <button class="speed-btn" id="speedSlower" onclick="setSpeed('slower')" title="0.45x">🐌</button>
       </div>
     </div>
 
@@ -534,7 +536,7 @@
     </div>
     <div>
       <a class="support-btn" href="https://portaly.cc/mamahowma/support" target="_blank" rel="noopener noreferrer">
-        喜歡這個免費工具嗎？☕ 請杯咖啡鼓勵我
+        喜歡這個免費工具嗎？<br>☕ 請杯咖啡鼓勵我
       </a>
     </div>
     <div class="tools-label">🔡 More English Tools:</div>
@@ -690,8 +692,8 @@ function renderSentences() {
 }
 
 function getRate() {
-  if (speed === 'slower') return 0.6;
-  if (speed === 'slow') return 0.75;
+  if (speed === 'slower') return 0.45;
+  if (speed === 'slow') return 0.65;
   return 1;
 }
 
